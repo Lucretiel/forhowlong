@@ -1,0 +1,18 @@
+[package]
+name = "forhowlong"
+version = "0.1.0"
+edition = "2024"
+
+authors = ["Nathan West <Lucretiel@gmail.com>"]
+readme = "./README.md"
+license = "MPL-2.0"
+description = "Parsable durations for configuration files, CLI arguments, and environment variables"
+repository = "https://github.com/Lucretiel/forhowlong"
+
+rust-version = "1.99"
+
+[dependencies]
+ascii-digit = "1.0.0"
+nom = { version = "7", default-features = false }
+nom-supreme = "0.8.0"
+thiserror = { version = "2.0.21", default-features = false }
