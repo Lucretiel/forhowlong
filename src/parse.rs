@@ -12,7 +12,7 @@ use ascii_digit::{AsciiDigit, StrExt as _};
 use crate::consts::*;
 
 /**
-The types of errors that can occur when parsing a [`Duration`][crate::Duration]
+The types of errors that can occur when parsing a [`Duration`][crate::Duration].
  */
 #[non_exhaustive]
 #[derive(Debug, Clone)]

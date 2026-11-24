@@ -12,11 +12,24 @@ better, but `--timeout=100ms` is ideal: it's perfectly unambiguous and is much
 more likely to survive transitions between tools that forward arguments to
 each other.
 
+# Example
+
+```
+use forhowlong::Duration;
+use std::time;
+
+let d1: Duration = "1s 500ms".parse().unwrap();
+let d2: Duration = "1500ms".parse().unwrap();
+
+assert_eq!(d1.as_std_duration(), time::Duration::from_millis(1500));
+assert_eq!(d1, d2);
+```
+
 # Syntax
 
 A `forhowlong` duration is a simple series of magnitude-unit pairs, separated
 by optional spaces and an optional comma, and the total duration is the sum of
-all the pairs. `100ms`, `1h20m`, `1s, 1ms`, and `1000000 nanoseconds` are all
+all the pairs. `100ms`, `1h20m`, `1s, 1.5ms`, and `1000000 nanoseconds` are all
 valid timestamps.
 
 It supports the following units. It is case sensitive and expects all-lowercase.
@@ -32,7 +45,7 @@ It supports the following units. It is case sensitive and expects all-lowercase.
 - Hours (60 minutes): `h`, `hr`, `hrs`, `hour`, `hours`
 
 We don't support any unit of time above hour, like "Day", because those units
-have variable durations in practice (leap-days DST and so on). Prefer to use
+have variable durations in practice (leap-days and DST and so on). Prefer to use
 [jiff](http://docs.rs/jiff) if you need these kinds of time scales.
 
 It supports fractional units, like `0.5s`, but will not accept any durations

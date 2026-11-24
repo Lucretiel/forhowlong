@@ -1,30 +1,25 @@
 use core::{assert_matches, str::FromStr as _};
 
-use const_format::{concatc, str_repeat};
-
-use crate::{
-    Duration, ErrorKind, HOUR_U128, MICRO_U128, MILLI_U128, MINUTE_U128, NANO_U128, SECOND_U128,
-    StdDuration,
-};
+use crate::{Duration, ErrorKind, StdDuration};
 
 macro_rules! d {
     (
-        $(h $h:literal )?
-        $(m $m:literal )?
-        $(s $s:literal )?
-        $(ms $ms:literal )?
-        $(us $us:literal )?
-        $(ns $ns:literal )?
+        $( h $h:literal )?
+        $( m $m:literal )?
+        $( s $s:literal )?
+        $( ms $ms:literal )?
+        $( us $us:literal )?
+        $( ns $ns:literal )?
     ) => {
-        StdDuration::from_nanos_u128(
-           $( $h * HOUR_U128+)?
-           $( $m * MINUTE_U128 +)?
-           $( $s * SECOND_U128 +)?
-           $( $ms * MILLI_U128 +)?
-           $( $us * MICRO_U128 +)?
-           $( $ns * NANO_U128 +)?
+        StdDuration::from_nanos_u128(const {
+           $( $h * crate::consts::HOUR_U128 + )?
+           $( $m * crate::consts::MINUTE_U128 + )?
+           $( $s * crate::consts::SECOND_U128 + )?
+           $( $ms * crate::consts::MILLI_U128 + )?
+           $( $us * crate::consts::MICRO_U128 + )?
+           $( $ns * crate::consts::NANO_U128 + )?
            0
-        )
+        })
     };
 }
 
@@ -57,23 +52,22 @@ macro_rules! parse_failure_tests {
             assert_matches!(error.kind(), ErrorKind::$kind, "wrong error kind");
             assert_eq!(error.index(), $position, "wrong error position");
         }
-    )*}
+    )*};
+
+    // Shorthand version where all tests are the same error kind
+    (
+        @ $kind:ident
+        $(
+            $name:ident : $input:expr => @ $position:literal;
+        )*
+    ) => {
+        parse_failure_tests! {
+            $( $name : $input => $kind @ $position; )*
+        }
+    };
 }
 
-const TWENTY_ZEROES: &str = str_repeat!("0", 20);
-
-parse_success_tests! {
-    second: "1s" => d!(s 1);
-    leading_zeroes: concatc!(TWENTY_ZEROES, "5s") => d!(s 5);
-    decimal: "0.5s" => d!(ms 500);
-}
-
-parse_failure_tests! {
-    reject_sub_nano_1: "0.5ns" => SubNanosecond @ 0;
-    reject_sub_nano_2: "0.00000000000000005ms" => SubNanosecond @ 0;
-}
-
-/// One test for every individual supported unit word.
+/// Tests for each possible word
 mod unit_words {
     use super::*;
 
@@ -130,8 +124,6 @@ mod unit_words {
     }
 }
 
-/// The same unit words, with a space between the number and the unit, and
-/// followed by another component. Makes sure each word stops where it should.
 mod unit_words_spaced_and_followed {
     use super::*;
 
@@ -187,50 +179,51 @@ mod unit_rejects {
     use super::*;
 
     parse_failure_tests! {
-        uppercase_s: "1S" => ExpectedUnit @ 1;
-        uppercase_ms: "1MS" => ExpectedUnit @ 1;
-        mixed_case_ms: "1mS" => ExpectedUnit @ 1;
-        uppercase_h: "1H" => ExpectedUnit @ 1;
-        capital_minutes: "1Minutes" => ExpectedUnit @ 1;
-        day: "1d" => ExpectedUnit @ 1;
-        days: "1days" => ExpectedUnit @ 1;
-        week: "1w" => ExpectedUnit @ 1;
-        year: "1y" => ExpectedUnit @ 1;
-        msec: "1msec" => ExpectedUnit @ 1;
-        usec: "1usec" => ExpectedUnit @ 1;
-        nsec: "1nsec" => ExpectedUnit @ 1;
-        greek_mu_sec: "1\u{3bc}sec" => ExpectedUnit @ 1;
-        bare_nano: "1nano" => ExpectedUnit @ 1;
-        bare_micro: "1micro" => ExpectedUnit @ 1;
-        bare_milli: "1milli" => ExpectedUnit @ 1;
-        bare_micro_sign: "1\u{b5}" => ExpectedUnit @ 1;
-        bare_greek_mu: "1\u{3bc}" => ExpectedUnit @ 1;
-        bare_n: "1n" => ExpectedUnit @ 1;
-        bare_u: "1u" => ExpectedUnit @ 1;
-        nano_space_s: "1nano s" => ExpectedUnit @ 1;
-        micro_hyphen_seconds: "1micro-seconds" => ExpectedUnit @ 1;
-        millimeters: "1millimeters" => ExpectedUnit @ 1;
-        mil: "1mil" => ExpectedUnit @ 1;
-        mseconds: "1mseconds" => ExpectedUnit @ 1;
-        double_plural: "1secss" => ExpectedUnit @ 1;
-        minss: "1minss" => ExpectedUnit @ 1;
-        hourss: "1hourss" => ExpectedUnit @ 1;
-        hs: "1hs" => ExpectedUnit @ 1;
-        trailing_letter: "1sx" => ExpectedUnit @ 1;
-        doubled_square: "1㎳㎳" => ExpectedUnit @ 1;
-        square_then_letter: "1㎳x" => ExpectedUnit @ 1;
-        emoji: "1🕐" => ExpectedUnit @ 1;
-        exponent: "1e3s" => ExpectedUnit @ 1;
-        underscore: "1_000s" => ExpectedUnit @ 1;
-        decimal_comma: "1,5s" => ExpectedUnit @ 1;
-        thousands_space: "1 000s" => ExpectedUnit @ 2;
-        tab_separator: "1\ts" => ExpectedUnit @ 1;
-        nbsp_separator: "1\u{a0}s" => ExpectedUnit @ 1;
-        ideographic_space_separator: "1\u{3000}s" => ExpectedUnit @ 1;
-        newline_separator: "1\ns" => ExpectedUnit @ 1;
-        fullwidth_digit_after_digit: "1\u{ff15}s" => ExpectedUnit @ 1;
-        second_unit_bad: "1h 30x" => ExpectedUnit @ 5;
-        unit_error_after_multibyte: "1\u{3bc}s 2q" => ExpectedUnit @ 6;
+        @ExpectedUnit
+        uppercase_s: "1S" => @ 1;
+        uppercase_ms: "1MS" => @ 1;
+        mixed_case_ms: "1mS" => @ 1;
+        uppercase_h: "1H" => @ 1;
+        capital_minutes: "1Minutes" => @ 1;
+        day: "1d" => @ 1;
+        days: "1days" => @ 1;
+        week: "1w" => @ 1;
+        year: "1y" => @ 1;
+        msec: "1msec" => @ 1;
+        usec: "1usec" => @ 1;
+        nsec: "1nsec" => @ 1;
+        greek_mu_sec: "1\u{3bc}sec" => @ 1;
+        bare_nano: "1nano" => @ 1;
+        bare_micro: "1micro" => @ 1;
+        bare_milli: "1milli" => @ 1;
+        bare_micro_sign: "1\u{b5}" => @ 1;
+        bare_greek_mu: "1\u{3bc}" => @ 1;
+        bare_n: "1n" => @ 1;
+        bare_u: "1u" => @ 1;
+        nano_space_s: "1nano s" => @ 1;
+        micro_hyphen_seconds: "1micro-seconds" => @ 1;
+        millimeters: "1millimeters" => @ 1;
+        mil: "1mil" => @ 1;
+        mseconds: "1mseconds" => @ 1;
+        double_plural: "1secss" => @ 1;
+        minss: "1minss" => @ 1;
+        hourss: "1hourss" => @ 1;
+        hs: "1hs" => @ 1;
+        trailing_letter: "1sx" => @ 1;
+        doubled_square: "1㎳㎳" => @ 1;
+        square_then_letter: "1㎳x" => @ 1;
+        emoji: "1🕐" => @ 1;
+        exponent: "1e3s" => @ 1;
+        underscore: "1_000s" => @ 1;
+        decimal_comma: "1,5s" => @ 1;
+        thousands_space: "1 000s" => @ 2;
+        tab_separator: "1\ts" => @ 1;
+        nbsp_separator: "1\u{a0}s" => @ 1;
+        ideographic_space_separator: "1\u{3000}s" => @ 1;
+        newline_separator: "1\ns" => @ 1;
+        fullwidth_digit_after_digit: "1\u{ff15}s" => @ 1;
+        second_unit_bad: "1h 30x" => @ 5;
+        unit_error_after_multibyte: "1\u{3bc}s 2q" => @ 6;
     }
 }
 
@@ -286,17 +279,17 @@ mod numbers {
         zero_hours: "0h" => d!();
         double_zero: "00s" => d!();
         leading_zero: "007s" => d!(s 7);
-        leading_zeroes_hours: concatc!(TWENTY_ZEROES, "1h") => d!(h 1);
+        leading_zeroes_hours: "0000000000000000000000000000000001hr" => d!(h 1);
         zero_point_zero: "0.0s" => d!();
         zero_point_zero_ns: "0.0ns" => d!();
-        many_zero_fraction_digits: concatc!("0.", TWENTY_ZEROES, "s") => d!();
+        many_zero_fraction_digits: "0.000000000000000000000000000000s" => d!();
         big_seconds: "1000000s" => d!(s 1_000_000);
         big_nanos: "1000000000ns" => d!(s 1);
         thousand_ms: "1000ms" => d!(s 1);
         sixty_minutes: "60m" => d!(h 1);
         ninety_minutes: "90m" => d!(h 1 m 30);
         huge_nanos: "18446744073709551615ns" => StdDuration::from_nanos(u64::MAX);
-        nanos_beyond_u64: "18446744073709551616ns" => d!(ns 18446744073709551616);
+        nanos_beyond_u64: "184467440737095516160ns" => d!(ns 184467440737095516160);
     }
 }
 
@@ -306,7 +299,8 @@ mod fractions {
     parse_success_tests! {
         half_second: "1.5s" => d!(s 1 ms 500);
         trailing_fraction_zero: "1.50s" => d!(s 1 ms 500);
-        many_trailing_zeroes: concatc!("1.5", TWENTY_ZEROES, "s") => d!(s 1 ms 500);
+        many_trailing_zeroes: "1.50000000000000000000000000000000000000000s" => d!(s 1 ms 500);
+        leading_and_trailing_zeroes: "000000000000000000001.50000000000000000000000hr" => d!(m 90);
         one_nano_in_seconds: "0.000000001s" => d!(ns 1);
         full_precision_seconds: "1.123456789s" => d!(s 1 ms 123 us 456 ns 789);
         one_nano_in_millis: "0.000001ms" => d!(ns 1);
@@ -331,18 +325,19 @@ mod fractions {
     }
 
     parse_failure_tests! {
-        half_nano: "0.5ns" => SubNanosecond @ 0;
-        tenth_nano: "0.1ns" => SubNanosecond @ 0;
-        nano_and_a_half: "2.5ns" => SubNanosecond @ 0;
-        ten_digit_seconds: "1.1234567891s" => SubNanosecond @ 0;
-        ten_digit_seconds_trailing_zeroes: "0.0000000001000s" => SubNanosecond @ 0;
-        seven_digit_millis: "0.0000001ms" => SubNanosecond @ 0;
-        four_digit_micros: "1.0001us" => SubNanosecond @ 0;
-        too_small_minute: "0.00000000001m" => SubNanosecond @ 0;
-        third_of_nano_hour: "0.000000000001h" => SubNanosecond @ 0;
-        long_nonsense_fraction: "1.123456789012345678901234567890ns" => SubNanosecond @ 0;
-        sub_nano_in_second_component: "1s 0.5ns" => SubNanosecond @ 3;
-        sub_nano_after_comma: "1h, 2m, 0.5ns" => SubNanosecond @ 8;
+        @SubNanosecond
+        half_nano: "0.5ns" => @ 0;
+        tenth_nano: "0.1ns" => @ 0;
+        nano_and_a_half: "2.5ns" => @ 0;
+        ten_digit_seconds: "1.1234567891s" => @ 0;
+        ten_digit_seconds_trailing_zeroes: "0.0000000001000s" => @ 0;
+        seven_digit_millis: "0.0000001ms" => @ 0;
+        four_digit_micros: "1.0001us" => @ 0;
+        too_small_minute: "0.00000000001m" => @ 0;
+        third_of_nano_hour: "0.000000000001h" => @ 0;
+        long_nonsense_fraction: "1.123456789012345678901234567890ns" => @ 0;
+        sub_nano_in_second_component: "1s 0.5ns" => @ 3;
+        sub_nano_after_comma: "1h, 2m, 0.5ns" => @ 8;
     }
 }
 
@@ -384,25 +379,26 @@ mod multi_component {
 mod overflow {
     use super::*;
 
-    /// The largest whole number of hours that fits in a `Duration`.
-    const MAX_HOURS: u64 = u64::MAX / 3600;
+    // u64::MAX                = 18446744073709551615
+    // u64::MAX / 3600         = 5124095576030431 (the most whole hours that fit)
+    // 5124095576030431 * 3600 = 18446744073709551600 (15 seconds short of u64::MAX)
 
     parse_success_tests! {
-        max_seconds: concatc!(u64::MAX, "s") => StdDuration::new(u64::MAX, 0);
-        max_duration: concatc!(u64::MAX, ".999999999s") => StdDuration::MAX;
-        max_duration_in_parts: concatc!(u64::MAX, "s 999ms 999us 999ns") => StdDuration::MAX;
-        max_hours: concatc!(MAX_HOURS, "h") => StdDuration::from_secs(MAX_HOURS * 3600);
-        max_hours_plus_remainder: concatc!(MAX_HOURS, "h 15s") => StdDuration::new(u64::MAX, 0);
+        max_seconds: "18446744073709551615s" => StdDuration::new(u64::MAX, 0);
+        max_duration: "18446744073709551615.999999999s" => StdDuration::MAX;
+        max_duration_in_parts: "18446744073709551615s 999ms 999us 999ns" => StdDuration::MAX;
+        max_hours: "5124095576030431h" => StdDuration::from_secs(u64::MAX - 15);
+        max_hours_plus_remainder: "5124095576030431h 15s" => StdDuration::new(u64::MAX, 0);
     }
 
     parse_failure_tests! {
         seconds_past_max: "18446744073709551616s" => Overflow @ 0;
-        hours_past_max: concatc!(MAX_HOURS + 1, "h") => Overflow @ 0;
+        hours_past_max: "5124095576030432h" => Overflow @ 0;
         beyond_u128: "999999999999999999999999999999999999999999h" => Overflow @ 0;
-        max_plus_nano: concatc!(u64::MAX, ".999999999s 1ns") => Overflow @ 32;
-        sum_overflow: concatc!(u64::MAX, "s 1s") => Overflow @ 22;
-        sum_overflow_comma: concatc!("1s, ", u64::MAX, "s") => Overflow @ 4;
-        hours_sum_overflow: concatc!(MAX_HOURS, "h 16s") => Overflow @ 18;
+        max_plus_nano: "18446744073709551615.999999999s 1ns" => Overflow @ 32;
+        sum_overflow: "18446744073709551615s 1s" => Overflow @ 22;
+        sum_overflow_comma: "1s, 18446744073709551615s" => Overflow @ 4;
+        hours_sum_overflow: "5124095576030431h 16s" => Overflow @ 18;
         overflow_beats_later_syntax_error: "18446744073709551616s nonsense" => Overflow @ 0;
     }
 }
