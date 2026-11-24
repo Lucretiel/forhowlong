@@ -80,17 +80,22 @@ pub struct ParseError {
 
 impl ParseError {
     /// The type of error this is.
+    #[inline]
+    #[must_use]
     pub fn kind(&self) -> ErrorKind {
         self.repr.kind.clone()
     }
 
     /// The byte index in the string where this error occurred.
+    #[inline]
+    #[must_use]
     pub fn index(&self) -> usize {
         self.repr.location
     }
 }
 
 impl Display for ParseError {
+    #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.repr.kind, f)
     }
@@ -110,6 +115,8 @@ impl Duration {
     Create a new [`forhowlong::Duration`][crate::Duration] wrapping a
     [`time::Duration`][core::time::Duration].
     */
+    #[inline]
+    #[must_use]
     pub const fn new(duration: StdDuration) -> Self {
         Self { repr: duration }
     }
@@ -117,30 +124,36 @@ impl Duration {
     /**
     Get the underlying parsed [`time::Duration`][core::time::Duration].
      */
+    #[inline]
+    #[must_use]
     pub const fn as_std_duration(&self) -> StdDuration {
         self.repr
     }
 }
 
 impl From<StdDuration> for Duration {
+    #[inline]
     fn from(value: StdDuration) -> Self {
         Self { repr: value }
     }
 }
 
 impl From<Duration> for StdDuration {
+    #[inline]
     fn from(value: Duration) -> Self {
         value.repr
     }
 }
 
 impl AsRef<StdDuration> for Duration {
+    #[inline]
     fn as_ref(&self) -> &StdDuration {
         &self.repr
     }
 }
 
 impl AsMut<StdDuration> for Duration {
+    #[inline]
     fn as_mut(&mut self) -> &mut StdDuration {
         &mut self.repr
     }
