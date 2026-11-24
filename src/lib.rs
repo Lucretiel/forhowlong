@@ -158,6 +158,8 @@ macro_rules! format_units {
                 const UNIT: u128 = $UNIT as u128;
 
                 let unit = nanos / UNIT;
+
+                #[allow(clippy::modulo_one)]
                 let remain = nanos % UNIT;
 
                 if unit > 0 {
