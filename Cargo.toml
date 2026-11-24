@@ -9,7 +9,10 @@ license = "MPL-2.0"
 description = "Parsable durations for configuration files, CLI arguments, and environment variables"
 repository = "https://github.com/Lucretiel/forhowlong"
 
-rust-version = "1.99"
+rust-version = "1.93"
 
 [dependencies]
-ascii-digit = "1.0.0"
+ascii-digit = "1.0"
+
+[dev-dependencies]
+cool_asserts = "2.0"

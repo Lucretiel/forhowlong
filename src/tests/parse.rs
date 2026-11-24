@@ -1,4 +1,6 @@
-use core::{assert_matches, str::FromStr as _};
+use core::str::FromStr as _;
+
+use cool_asserts::assert_matches;
 
 use crate::{Duration, ErrorKind, StdDuration};
 
